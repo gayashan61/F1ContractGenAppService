@@ -772,6 +772,30 @@ namespace F1ContractGenService.Controllers
             return response;
         }
 
+        //Generate  the Contract from URL
+        [Route("ForestOneDataService/ContractGen/DownloadContract")]
+        [HttpGet]
+        public HttpResponseMessage GetContractFromURL(String CUNO, String InDate)
+        {
+
+
+            Results res = new Results();
+            res = getContract(CUNO, InDate);
+            
+
+            string localFilePath;
+            localFilePath = res.OutputPath;
+            HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
+            FileStream files = new FileStream(localFilePath, FileMode.Open, FileAccess.Read);
+
+            response.Content = new StreamContent(files);
+            response.Content.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("attachment");
+            response.Content.Headers.ContentDisposition.FileName = res.FileName;
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+
+            return response;
+        }
+
 
         #endregion
 
