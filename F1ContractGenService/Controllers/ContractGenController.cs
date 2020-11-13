@@ -206,6 +206,7 @@ namespace F1ContractGenService.Controllers
         private Results GeneratePDF(List<BasePriceItem> priceListNational, bool isNationalCus, bool isBothPriceList, string FromDate, string ToDate, string customerName, List<BasePriceItem> priceListLeft, List<BasePriceItem> priceListRight, string CUNO)
         {
             Results results = new Results();
+            String ContractEndDate = "";
             try
             {
 
@@ -224,7 +225,7 @@ namespace F1ContractGenService.Controllers
                     foreach (BasePriceItem bsItem in priceListNational)
                     {
                         string temp = rowFormat;
-
+                        ContractEndDate = bsItem.LVDT;
                         temp = temp.Replace("{{NO}}", counter+"");
                         temp = temp.Replace("{{A}}", bsItem.ITNO);
                         temp = temp.Replace("{{B}}", bsItem.ITDS);
@@ -245,6 +246,7 @@ namespace F1ContractGenService.Controllers
                     {
                         foreach (BasePriceItem item in priceListLeft)
                         {
+                            ContractEndDate = item.LVDT;
                             item.LeftPrice = "$" + double.Parse(item.SAPR).ToString("0.00", CultureInfo.InvariantCulture);
                             if (item.RightPrice == null) item.RightPrice = STDPriceTag;
                             FinalList.Add(item);
@@ -257,6 +259,7 @@ namespace F1ContractGenService.Controllers
 
                         foreach (BasePriceItem item in priceListRight)
                         {
+                            ContractEndDate = item.LVDT;
                             bool isDuplicateFound = false;
                             foreach (BasePriceItem baseItem in FinalList)
                             {
@@ -308,8 +311,9 @@ namespace F1ContractGenService.Controllers
 
                 }
 
-                //DAte convert
-
+                //Date Conver for Contract End Date 
+                DateTime tempDateFormat = DateTime.ParseExact(ContractEndDate, "yyyyMMdd", CultureInfo.InvariantCulture);
+                ContractEndDate = tempDateFormat.ToString("dd MMMM yyyy");
 
                 string tableHeader = "<tr>" +
                     "<td style='width: 3%; border-style: none;padding-left:3px;'><strong>No.</strong></td>" +
@@ -320,8 +324,7 @@ namespace F1ContractGenService.Controllers
          "<td style='width: 12%; border-style: none;text-align: right; padding-right:3px;'><strong>Price Ex GST Pack</strong></td> " +
          "<td style='width: 8%; border-style: none;text-align: center;'><strong>PCK QTY</strong></td></tr>";
 
-                var htmlContent = String.Format("<p><img style='display: block; margin-left: auto; margin-right: auto;' src='https://res.cloudinary.com/gunnersen/image/upload/v1599465601/systemLogos/F1LOGO.jpg' alt='smiley' /></p><h1 style='text-align: center; font-family:Arial;margin-top:-10px'>Contract Price List</h1><h4 style='text-align: center;font-family:Arial;'>" + customerName + "</h4><h4 style='text-align: center;font-family:Arial;'>" + reportDate + "</h4>" +
-                    "<table style='border-color: #99b836; width: 100%;border-style: solid; border-collapse: collapse;font-size: 9px;font-family:Arial;' border='1' cellpadding='4'><tbody>" +
+                var htmlContent = String.Format("<p><img style='display: block; margin-left: auto; margin-right: auto;' src='https://res.cloudinary.com/gunnersen/image/upload/v1599465601/systemLogos/F1LOGO.jpg' alt='smiley' /></p><h1 style='text-align: center; font-family:Arial;margin-top:-10px'>Contract Price List</h1><h4 style='margin-top:-8px;text-align: center;font-family:Arial;'>" + customerName + "</h4> <div style='text-align:center;font-family:Arial; margin-top: -10px'><span> Effective from:  </span> <span style = 'text-align: center;font-family:Arial; font-weight:bold' > " + reportDate + " </span> <span> to </span> <span style = 'text-align: center;font-family:Arial; font-weight:bold' > " + ContractEndDate + " </span></div>  <table style='margin-top:8px;border-color: #99b836; width: 100%;border-style: solid; border-collapse: collapse;font-size: 9px;font-family:Arial;' border='1' cellpadding='4'><tbody>" +
                     tableHeader +
                   "" + row + "" +
                    "</tbody></table><p style='font-size:9px; font-family:Arial;'><strong>Payment Terms and Conditions:</strong></p>" +
