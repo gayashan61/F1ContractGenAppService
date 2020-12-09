@@ -199,6 +199,12 @@ namespace F1ContractGenService.Controllers
 
             }
 
+            if (results.OutputPath == null) {
+
+                results = GeneratePDFNull(  InDate, InDate, CustomerFullName, CUNO); 
+
+            }
+
             return results;
 
         }
@@ -328,6 +334,87 @@ namespace F1ContractGenService.Controllers
                     tableHeader +
                   "" + row + "" +
                    "</tbody></table><p style='font-size:9px; font-family:Arial;'><strong>Payment Terms and Conditions:</strong></p>" +
+                   "<p style='font-size:small; font-family: Arial;font-size:9px; '>This product quotation and all orders placed with Forest One Australia Pty Ltd are subject to Forest One&rsquo;s Terms and Conditions of Trade which are available on written request or may be viewed at <a href='http://www.forest1.com/terms-and-conditions-3.html'>http://www.forest1.com/terms-and-conditions-3.html</a> ('Forest One Australia Terms'); By accepting this product quotation and/or by placing any order with Forest One Australia Pty Ltd you agree to be bound by Forest One&rsquo;s Terms.</p>" +
+                   " ");
+
+
+                string OutputPath = string.Empty;
+                string FileName = string.Empty;
+                try
+                {
+                    var htmlToPdf = new NReco.PdfGenerator.HtmlToPdfConverter();
+                    string timestamp = Guid.NewGuid().ToString("N");
+                    timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString();
+
+
+                    FileName = "Contract-" + CUNO + " - " + timestamp + ".pdf";
+                    OutputPath = @"C:\ForestOnePriceLists\" + FileName;
+                    htmlToPdf.GeneratePdf(htmlContent, "", OutputPath);
+
+                    results.Status = true;
+                    results.OutputPath = OutputPath;
+                    results.FileName = FileName;
+
+                }
+                catch (Exception ex)
+                {
+
+                    results.Status = false;
+                    results.OutputPath = OutputPath + "<<1>>" + ex.Message;
+                }
+
+
+                return results;
+
+            }
+            catch (Exception ex)
+            {
+
+                results.Status = false;
+                results.OutputPath = string.Empty;
+                results.Error = "<<2>>" + ex.Message;
+                return results;
+            }
+
+        }
+
+        private Results GeneratePDFNull( string FromDate, string ToDate, string customerName,    string CUNO)
+        {
+            Results results = new Results();
+            String ContractEndDate = "";
+            try
+            {
+
+                string PDFSavePath = ConfigurationManager.AppSettings.Get("PDFSavePath");
+                DateTime newDate = DateTime.ParseExact(ToDate, "ddMMyyyy", CultureInfo.InvariantCulture);
+                string reportDate = newDate.ToString("dd MMMM yyyy");
+
+                string row = "";
+                string rowFormat = "<tr><td style='padding-left:3px;'> </td><td style='padding-left:3px;'> </td><td style='padding-left:3px;'>No Data Found</td><td style='text-align: right; padding-right:3px;'> </td><td style='text-align: center;'> </td><td style='text-align: right; padding-right:3px;'> </td><td style='text-align: center;'> </td></tr> ";
+                string STDPriceTag = "Refer to Std Price List";
+
+                  
+ 
+
+                //Date Conver for Contract End Date 
+               // DateTime tempDateFormat = DateTime.ParseExact(ContractEndDate, "yyyyMMdd", CultureInfo.InvariantCulture);
+              //  ContractEndDate = tempDateFormat.ToString("dd MMMM yyyy");
+
+                string tableHeader = "<tr>" +
+                    "<td style='width: 3%; border-style: none;padding-left:3px;'><strong>No.</strong></td>" +
+                    "<td style='width: 17%; border-style: none;padding-left:3px;'><strong>PRODUCT CODE</strong></td>" +
+         "<td style='width: 40%; border-style: none;padding-left:3px;'><strong>PRODUCT DESCRIPTION</strong></td>" +
+         "<td style='width: 12%; border-style: none; text-align: right; padding-right:3px;'><strong>Price Ex GST Loose</strong></td> " +
+         "<td style='width: 8%; border-style: none;text-align: center;'><strong>UOM</strong></td> " +
+         "<td style='width: 12%; border-style: none;text-align: right; padding-right:3px;'><strong>Price Ex GST Pack</strong></td> " +
+         "<td style='width: 8%; border-style: none;text-align: center;'><strong>PCK QTY</strong></td></tr>";
+
+                var htmlContent = String.Format("<p><img style='display: block; margin-left: auto; margin-right: auto;' src='https://res.cloudinary.com/gunnersen/image/upload/v1599465601/systemLogos/F1LOGO.jpg' alt='smiley' /></p><h1 style='text-align: center; font-family:Arial;margin-top:-10px'>Contract Price List</h1><h4 style='margin-top:-8px;text-align: center;font-family:Arial;'>" + customerName + "</h4> <div style='text-align:center;font-family:Arial; margin-top: -10px'><span> Effective from:  </span> <span style = 'text-align: center;font-family:Arial; font-weight:bold' > " + reportDate + " </span> <span> </span> <span style = 'text-align: center;font-family:Arial; font-weight:bold' > " + ContractEndDate + " </span></div>  <table style='margin-top:8px;border-color: #99b836; width: 100%;border-style: solid; border-collapse: collapse;font-size: 9px;font-family:Arial;' border='1' cellpadding='4'><tbody>" +
+                    tableHeader +
+                  "" + rowFormat + "" +
+                   "</tbody></table>" +
+                   "<p style='font-size:12px;  font-family:Arial;'>No price lists available for the given time period</p>" +
+                   "<p style='font-size:9px; font-family:Arial;'><strong>Payment Terms and Conditions:</strong></p>" +
                    "<p style='font-size:small; font-family: Arial;font-size:9px; '>This product quotation and all orders placed with Forest One Australia Pty Ltd are subject to Forest One&rsquo;s Terms and Conditions of Trade which are available on written request or may be viewed at <a href='http://www.forest1.com/terms-and-conditions-3.html'>http://www.forest1.com/terms-and-conditions-3.html</a> ('Forest One Australia Terms'); By accepting this product quotation and/or by placing any order with Forest One Australia Pty Ltd you agree to be bound by Forest One&rsquo;s Terms.</p>" +
                    " ");
 
@@ -780,23 +867,57 @@ namespace F1ContractGenService.Controllers
         [HttpGet]
         public HttpResponseMessage GetContractFromURL(String CUNO, String InDate)
         {
+            string apiDateFormat = "";
+            if (InDate.Length == 10)
+            {
+                //string inputDateFormat = "yyyy-mm-dd";
+                string YEAR = InDate.Substring(0, 4);
+                string MONTH = InDate.Substring(5, 2);
+                string DATE = InDate.Substring(8, 2);
+                apiDateFormat = DATE + MONTH +   YEAR;
+
+            }
+            else if(InDate.Length == 8) {
+
+                apiDateFormat = InDate;
+            }
+            else {
+
+                
+
+                var message = string.Format("Input Date Format Should be 'YYYY-MM-DD' or 'DDMMYYYY'");
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, message);
+            }
+
 
 
             Results res = new Results();
-            res = getContract(CUNO, InDate);
-            
+            res = getContract(CUNO, apiDateFormat);
 
-            string localFilePath;
-            localFilePath = res.OutputPath;
-            HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
-            FileStream files = new FileStream(localFilePath, FileMode.Open, FileAccess.Read);
+            if (res.OutputPath != null)
+            {
 
-            response.Content = new StreamContent(files);
-            response.Content.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("attachment");
-            response.Content.Headers.ContentDisposition.FileName = res.FileName;
-            response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+                string localFilePath;
+                localFilePath = res.OutputPath;
+                HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
+                FileStream files = new FileStream(localFilePath, FileMode.Open, FileAccess.Read);
 
-            return response;
+                response.Content = new StreamContent(files);
+                response.Content.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("attachment");
+                response.Content.Headers.ContentDisposition.FileName = res.FileName;
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+
+                return response;
+
+            }
+            else {
+
+                var message = string.Format("No Contracts Found for "+ CUNO + " given date "+InDate );
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, message);
+
+            }
+
+           
         }
 
 
