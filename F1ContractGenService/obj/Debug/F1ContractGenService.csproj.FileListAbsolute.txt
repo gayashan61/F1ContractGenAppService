@@ -389,3 +389,4 @@ C:\Fortude_Technical\ToDos\64. PriceList Gen\DevBranch\03122020-Service\F1Contra
 C:\Fortude_Technical\ToDos\64. PriceList Gen\DevBranch\03122020-Service\F1ContractGenAppService\F1ContractGenService\obj\Debug\F1ContractGenService.csproj.CopyComplete
 C:\Fortude_Technical\ToDos\64. PriceList Gen\DevBranch\03122020-Service\F1ContractGenAppService\F1ContractGenService\obj\Debug\F1ContractGenService.dll
 C:\Fortude_Technical\ToDos\64. PriceList Gen\DevBranch\03122020-Service\F1ContractGenAppService\F1ContractGenService\obj\Debug\F1ContractGenService.pdb
+C:\Fortude_Technical\ToDos\64. PriceList Gen\DevBranch\03122020-Service\F1ContractGenAppService\F1ContractGenService\obj\Debug\F1ContractGenService.csprojAssemblyReference.cache

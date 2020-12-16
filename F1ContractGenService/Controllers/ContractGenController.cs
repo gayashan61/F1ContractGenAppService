@@ -1,6 +1,7 @@
 ﻿using F1ContractGenService.Models;
 using Infor.M3.MvxSock;
 using Newtonsoft.Json.Linq;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -21,6 +22,7 @@ namespace F1ContractGenService.Controllers
     [EnableCors(origins: "*", headers: "*", methods: "*")]
     public class ContractGenController : ApiController
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         [Route("ForestOneDataService/ContractGen/GetContract")]
         [HttpPost]
@@ -35,7 +37,7 @@ namespace F1ContractGenService.Controllers
                     InDate = "0" + InDate;
                 }
 
-                res = getContract(CUNO, InDate); 
+                res = getContract(CUNO, InDate,"",""); 
                 
             }
             catch (Exception ex)
@@ -46,6 +48,26 @@ namespace F1ContractGenService.Controllers
             return Json<Results>(res);
 
 
+        }
+
+
+        [Route("ForestOneDataService/ContractGen/TESTAPI")]
+        [HttpPost]
+        public JsonResult<string> TESTAPI(JObject jsonData)
+        {
+            try
+            {
+                string CUNM = jsonData.Value<string>("CUNM").ToString();
+                logger.Info("Hell  "+CUNM+" You have visited the Index view" + Environment.NewLine + DateTime.Now);
+              
+
+
+                return Json<string>("API SUCESS"+CUNM.ToUpper());
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
         [Route("ForestOneDataService/ContractGen/GetCustomerList")]
@@ -86,8 +108,9 @@ namespace F1ContractGenService.Controllers
             }
         }
 
-        private Results getContract(string CUNO, string InDate) 
+        private Results getContract(string CUNO, string InDate, string StartMonth, string WHLO) 
         {
+            logger.Info("Level2 - FN getContract 1");
             Results results = new Results();
             string APIUser = ConfigurationManager.AppSettings["USER"];
             string APIPassword = ConfigurationManager.AppSettings["PASSWORD"];
@@ -96,9 +119,10 @@ namespace F1ContractGenService.Controllers
             List<PriceItem> objPriceListPack = new List<PriceItem>();
             List<PriceItem> objPriceListNationalCustomer = new List<PriceItem>();
 
+            logger.Info("Level2 - Calling GetCustomerFullName 2");
             string CustomerFullName = GetCustomerFullName(CUNO, APIUser, APIPassword);
-
-                                           bool IsNationalListCustomer = true;
+            logger.Info("Level2 - Calling CustomerFullName 3"+ CustomerFullName);
+            bool IsNationalListCustomer = true;
             //Step 1
             string PRRF = this.GetPRRF(CUNO);
 
@@ -174,42 +198,51 @@ namespace F1ContractGenService.Controllers
             }
 
             //Step 4 - Generate the PDF
+            logger.Info("Level2 - Generate the PDF 10");
+
             //Input 
             if (IsNationalListCustomer)
             {
-              results=   GeneratePDF(priceListNational, IsNationalListCustomer, false, InDate, InDate, CustomerFullName,null,null, CUNO);
+              results=   GeneratePDF(priceListNational, IsNationalListCustomer, false, InDate, InDate, CustomerFullName,null,null, CUNO, StartMonth, WHLO);
             }
             else
             {
 
                 if (priceListLeft.Count > 0 && priceListRight.Count > 0)
                 {
-                    results = GeneratePDF(null, IsNationalListCustomer, true, InDate, InDate, CustomerFullName, priceListLeft, priceListRight, CUNO);
+                    results = GeneratePDF(null, IsNationalListCustomer, true, InDate, InDate, CustomerFullName, priceListLeft, priceListRight, CUNO, StartMonth, WHLO);
                 }
                 else if (priceListRight.Count > 0)
                 {
-                    results = GeneratePDF(null, IsNationalListCustomer, false, InDate, InDate, CustomerFullName, null, priceListRight, CUNO);
+                    results = GeneratePDF(null, IsNationalListCustomer, false, InDate, InDate, CustomerFullName, null, priceListRight, CUNO, StartMonth, WHLO);
 
                 }
                 else if (priceListLeft.Count > 0)
                 {
-                    results = GeneratePDF(null, IsNationalListCustomer, false, InDate, InDate, CustomerFullName, priceListLeft,null, CUNO);
+                    results = GeneratePDF(null, IsNationalListCustomer, false, InDate, InDate, CustomerFullName, priceListLeft,null, CUNO, StartMonth, WHLO);
 
                 }
 
             }
 
-            if (results.OutputPath == null) {
+            logger.Info("Level2 - results.OutputPath 11");
 
-                results = GeneratePDFNull(  InDate, InDate, CustomerFullName, CUNO); 
+            if (results.OutputPath == null)
+            {
+                logger.Info("Level2 - results.OutputPath is null 12");
+                results = GeneratePDFNull(InDate, InDate, CustomerFullName, CUNO);
 
+                logger.Info("Level2 - results.OutputPath is null 12" + results.OutputPath);
+            }
+            else {
+                logger.Info("Level2 - results.OutputPath 13 "+ results.OutputPath);
             }
 
             return results;
 
         }
 
-        private Results GeneratePDF(List<BasePriceItem> priceListNational, bool isNationalCus, bool isBothPriceList, string FromDate, string ToDate, string customerName, List<BasePriceItem> priceListLeft, List<BasePriceItem> priceListRight, string CUNO)
+        private Results GeneratePDF(List<BasePriceItem> priceListNational, bool isNationalCus, bool isBothPriceList, string FromDate, string ToDate, string customerName, List<BasePriceItem> priceListLeft, List<BasePriceItem> priceListRight, string CUNO, string StartMonth, string WHLO)
         {
             Results results = new Results();
             String ContractEndDate = "";
@@ -217,8 +250,27 @@ namespace F1ContractGenService.Controllers
             {
 
                 string PDFSavePath = ConfigurationManager.AppSettings.Get("PDFSavePath");
+                
+                PDFSavePath = PDFSavePath + WHLO +"\\";
+
+                 bool exists = System.IO.Directory.Exists(PDFSavePath);
+
+                if (!exists)
+                    System.IO.Directory.CreateDirectory(PDFSavePath);
+
                 DateTime newDate = DateTime.ParseExact(ToDate, "ddMMyyyy", CultureInfo.InvariantCulture);
-                string reportDate = newDate.ToString("dd MMMM yyyy");
+
+                string reportDate = "";
+                if (StartMonth.Trim().Length > 0)
+                {
+                      reportDate = newDate.ToString("dd X yyyy");
+                    reportDate = reportDate.Replace("X", StartMonth);
+                }
+                else {
+                      reportDate = newDate.ToString("dd MMMM yyyy");
+
+                }
+
 
                 string row = "";
                 string rowFormat = "<tr><td style='padding-left:3px;'>{{NO}}</td><td style='padding-left:3px;'>{{A}}</td><td style='padding-left:3px;'>{{B}}</td><td style='text-align: right; padding-right:3px;'>{{C}}</td><td style='text-align: center;'>{{D}}</td><td style='text-align: right; padding-right:3px;'>{{E}}</td><td style='text-align: center;'>{{F}}</td></tr> ";
@@ -347,18 +399,18 @@ namespace F1ContractGenService.Controllers
                     timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString();
 
 
-                    FileName = "Contract-" + CUNO + " - " + timestamp + ".pdf";
-                    OutputPath = @"C:\ForestOnePriceLists\" + FileName;
+                    FileName = "Contract-"+ WHLO + "-"+ CUNO + "-" + timestamp + ".pdf";
+                    OutputPath =  PDFSavePath + FileName;
                     htmlToPdf.GeneratePdf(htmlContent, "", OutputPath);
 
                     results.Status = true;
                     results.OutputPath = OutputPath;
                     results.FileName = FileName;
-
+                    logger.Info("Level3 - PDF File Generate Completed" + FileName);
                 }
                 catch (Exception ex)
                 {
-
+                    logger.Info("Level3 - PDF File Generate Error Y " + ex.StackTrace);
                     results.Status = false;
                     results.OutputPath = OutputPath + "<<1>>" + ex.Message;
                 }
@@ -369,7 +421,7 @@ namespace F1ContractGenService.Controllers
             }
             catch (Exception ex)
             {
-
+                logger.Info("Level3 - PDF File Generate Error X " + ex.StackTrace);
                 results.Status = false;
                 results.OutputPath = string.Empty;
                 results.Error = "<<2>>" + ex.Message;
@@ -541,6 +593,8 @@ namespace F1ContractGenService.Controllers
 
             value =  (GetCustomerFACI(CUNO, userid, password))[1];
 
+            logger.Info("Level 3 - Calling GetCustomerFullName result: " + value);
+
             return value;
         }
 
@@ -574,12 +628,13 @@ namespace F1ContractGenService.Controllers
                 value.Add(MvxSock.GetField(ref sid, "CFC3"));
                 value.Add(MvxSock.GetField(ref sid, "CUNM"));
 
+
                 MvxSock.Close(ref sid);
             }
             catch (Exception ex)
             {
 
-
+                logger.Info("Level 3 - Calling GetCustomerFACI Error: "+ex.StackTrace);
 
             }
             return value;
@@ -682,6 +737,7 @@ namespace F1ContractGenService.Controllers
             }
             catch (Exception ex)
             {
+
 
             }
             return objLstPrice;
@@ -848,7 +904,7 @@ namespace F1ContractGenService.Controllers
         [HttpGet]
         public HttpResponseMessage Get(String DocPath, String FileName)
         {
-           
+            logger.Info( "API Called GET PDF" + Environment.NewLine + DateTime.Now);
             string localFilePath;
             localFilePath = DocPath;
             HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
@@ -867,6 +923,8 @@ namespace F1ContractGenService.Controllers
         [HttpGet]
         public HttpResponseMessage GetContractFromURL(String CUNO, String InDate)
         {
+            logger.Info("Level1 - Download Contract 1");
+
             string apiDateFormat = "";
             if (InDate.Length == 10)
             {
@@ -892,11 +950,12 @@ namespace F1ContractGenService.Controllers
 
 
             Results res = new Results();
-            res = getContract(CUNO, apiDateFormat);
-
+            logger.Info("Level1 - Calling GetContract 2");
+            res = getContract(CUNO, apiDateFormat,"","");
+            logger.Info("Level1 - Complete GetContract 3"); 
             if (res.OutputPath != null)
             {
-
+                logger.Info("Level1 - Output path not null 4");
                 string localFilePath;
                 localFilePath = res.OutputPath;
                 HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
@@ -912,6 +971,7 @@ namespace F1ContractGenService.Controllers
             }
             else {
 
+                logger.Info("Level1 - Output path is null 5");
                 var message = string.Format("No Contracts Found for "+ CUNO + " given date "+InDate );
                 return Request.CreateErrorResponse(HttpStatusCode.NotFound, message);
 
@@ -921,15 +981,89 @@ namespace F1ContractGenService.Controllers
         }
 
 
-        #endregion
+
+        [Route("ForestOneDataService/ContractGen/BulkContractGeneratre")]
+        [HttpPost]
+        public HttpResponseMessage BulkContractGeneratre(JObject jsonData)
+        {
+            logger.Info("Level1 - BulkContractGeneratre 1");
+            string CUNO = jsonData.Value<string>("CUNO").ToString();
+            string InDate = jsonData.Value<string>("InDate").ToString();
+            string StartMonth = jsonData.Value<string>("StartMonth").ToString();
+            string WHLO = jsonData.Value<string>("WHLO").ToString();
+
+            
+
+            string apiDateFormat = "";
+            if (InDate.Length == 10)
+            {
+                //string inputDateFormat = "yyyy-mm-dd";
+                string YEAR = InDate.Substring(0, 4);
+                string MONTH = InDate.Substring(5, 2);
+                string DATE = InDate.Substring(8, 2);
+                apiDateFormat = DATE + MONTH + YEAR;
+
+            }
+            else if (InDate.Length == 8)
+            {
+
+                apiDateFormat = InDate;
+            }
+            else
+            {
 
 
 
-        /// <summary>
-        /// Gets the API connection string.
-        /// </summary>
-        /// <returns></returns>
-        private static string getAPIConnectionString()
+                var message = string.Format("Input Date Format Should be 'YYYY-MM-DD' or 'DDMMYYYY'");
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, message);
+            }
+
+
+
+            Results res = new Results();
+            logger.Info("Level1 - Calling GetContract 2");
+            res = getContract(CUNO, apiDateFormat, StartMonth, WHLO);
+            logger.Info("Level1 - Complete GetContract 3");
+
+            if (res.OutputPath != null)
+            {
+                logger.Info("Level1 - Output path not null 4");
+                string localFilePath;
+                localFilePath = res.OutputPath;
+                HttpResponseMessage response = new HttpResponseMessage(HttpStatusCode.OK);
+                FileStream files = new FileStream(localFilePath, FileMode.Open, FileAccess.Read);
+
+                string DocPath = res.OutputPath;
+                string fileName = res.FileName;
+
+                String URL = "https://pricelistform.gunnersens.com.au:8070/Service/ForestOneDataService/ContractGen/GETPDF?DocPath="+DocPath+"&FileName=" + fileName;
+
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(URL) };
+
+
+            }
+            else
+            {
+
+                logger.Info("Level1 - Output path is null 5");
+                var message = string.Format("No Contracts Found for " + CUNO + " given date " + InDate);
+                return Request.CreateErrorResponse(HttpStatusCode.NotFound, message);
+
+            }
+
+
+        }
+
+
+            #endregion
+
+
+
+            /// <summary>
+            /// Gets the API connection string.
+            /// </summary>
+            /// <returns></returns>
+            private static string getAPIConnectionString()
         {
 
             return ConfigurationManager.AppSettings["M3APIServer"];
@@ -981,7 +1115,7 @@ namespace F1ContractGenService.Controllers
             }
             catch (Exception ex)
             {
-
+                logger.Info("Error IN API Call CRS610 "+ex.StackTrace + Environment.NewLine + DateTime.Now);
                 throw;
             }
 
@@ -1025,7 +1159,7 @@ namespace F1ContractGenService.Controllers
             }
             catch (Exception ex)
             {
-
+                logger.Info("Error IN API Call OIS017 " + ex.StackTrace + Environment.NewLine + DateTime.Now);
                 throw;
             }
 
@@ -1067,7 +1201,7 @@ namespace F1ContractGenService.Controllers
             }
             catch (Exception ex)
             {
-
+                logger.Info("Error IN API Call MMS200" + ex.StackTrace + Environment.NewLine + DateTime.Now);
                 throw;
             }
 
@@ -1169,6 +1303,7 @@ namespace F1ContractGenService.Controllers
                 }
                 catch (Exception ex)
                 {
+                    logger.Info("Error Get Customer List " + ex.StackTrace + Environment.NewLine + DateTime.Now);
                     Console.WriteLine(ex.Message);
                 }
 

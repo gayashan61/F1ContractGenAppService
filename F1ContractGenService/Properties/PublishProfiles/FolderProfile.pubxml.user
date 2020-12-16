@@ -79,10 +79,10 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>03/12/2020 11:05:49</publishTime>
     </File>
     <File Include="bin/F1ContractGenService.dll">
-      <publishTime>12/09/2020 12:56:43</publishTime>
+      <publishTime>12/16/2020 12:38:24</publishTime>
     </File>
     <File Include="bin/F1ContractGenService.pdb">
-      <publishTime>12/09/2020 12:56:43</publishTime>
+      <publishTime>12/16/2020 12:38:24</publishTime>
     </File>
     <File Include="bin/IronPdf.Assets.Rendering.Windows.dll">
       <publishTime>03/12/2020 11:05:49</publishTime>
@@ -109,7 +109,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>03/12/2020 11:05:50</publishTime>
     </File>
     <File Include="bin/NLog.dll">
-      <publishTime>03/12/2020 11:05:50</publishTime>
+      <publishTime>06/12/2020 19:11:06</publishTime>
     </File>
     <File Include="bin/NReco.PdfGenerator.dll">
       <publishTime>03/12/2020 11:05:50</publishTime>
@@ -391,7 +391,7 @@ by editing this MSBuild file. In order to learn more about this please visit htt
       <publishTime>03/12/2020 11:05:47</publishTime>
     </File>
     <File Include="Web.config">
-      <publishTime>03/12/2020 12:02:45</publishTime>
+      <publishTime>12/15/2020 14:01:43</publishTime>
     </File>
   </ItemGroup>
 </Project>
