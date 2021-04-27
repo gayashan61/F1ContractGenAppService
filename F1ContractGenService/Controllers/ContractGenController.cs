@@ -175,6 +175,24 @@ namespace F1ContractGenService.Controllers
             {
                 PriceItem LeftPriceItem = new PriceItem();
                 LeftPriceItem = objPriceListNationalCustomer.First();
+
+                //loop and check the input month is equal
+                if (objPriceListNationalCustomer.Count > 1)
+                {
+
+                    foreach (PriceItem x in objPriceListNationalCustomer)
+                    {
+
+                        if (x.FVDT.Substring(4, 2) == InDate.Substring(2, 2))
+                        {
+                            LeftPriceItem = x;
+                        }
+
+                    }
+                }
+
+
+
                 priceListNational = LstBasePrice(LeftPriceItem.PRRF, LeftPriceItem.CUNO, LeftPriceItem.CUCD, LeftPriceItem.FVDT, APIUser, APIPassword);
             }
             else
@@ -184,6 +202,20 @@ namespace F1ContractGenService.Controllers
                 if (objPriceListLoose.Count > 0)
                 {
                     LeftPriceItem = objPriceListLoose.First();
+
+                    //loop and check the input month is equal
+                    if (objPriceListLoose.Count > 1) {
+
+                        foreach (PriceItem x in objPriceListLoose) {
+                          
+                            if (x.FVDT.Substring(4,2) == InDate.Substring(2,2)) {
+                                LeftPriceItem = x;
+                            }
+
+                        }
+                    }
+
+
                     priceListLeft = LstBasePrice(LeftPriceItem.PRRF, LeftPriceItem.CUNO, LeftPriceItem.CUCD, LeftPriceItem.FVDT, APIUser, APIPassword);
                 }
 
@@ -192,6 +224,25 @@ namespace F1ContractGenService.Controllers
                 if (objPriceListPack.Count > 0)
                 {
                     RightPriceItem = objPriceListPack.First();
+
+                    //loop and check the input month is equal
+                    if (objPriceListPack.Count > 1)
+                    {
+
+                        foreach (PriceItem x in objPriceListPack)
+                        {
+
+                            if (x.FVDT.Substring(4, 2) == InDate.Substring(2, 2))
+                            {
+                                RightPriceItem = x;
+                            }
+
+                        }
+                    }
+
+
+
+
                     priceListRight = LstBasePrice(RightPriceItem.PRRF, RightPriceItem.CUNO, RightPriceItem.CUCD, RightPriceItem.FVDT, APIUser, APIPassword);
                 }
 
@@ -1008,6 +1059,8 @@ namespace F1ContractGenService.Controllers
             {
 
                 apiDateFormat = InDate;
+
+
             }
             else
             {
@@ -1055,15 +1108,81 @@ namespace F1ContractGenService.Controllers
         }
 
 
-            #endregion
+
+        [Route("ForestOneDataService/ContractGen/BulkContractGeneratreWeb")]
+        [HttpPost]
+        public JsonResult<string> BulkContractGeneratreByWebSite(JObject jsonData)
+        {
+            logger.Info("Level1 - BulkContractGeneratre 1");
+            string CUNO = jsonData.Value<string>("CUNO").ToString();
+            string InDate = jsonData.Value<string>("InDate").ToString();
+            string StartMonth = jsonData.Value<string>("StartMonth").ToString();
+            string WHLO = jsonData.Value<string>("WHLO").ToString();
 
 
 
-            /// <summary>
-            /// Gets the API connection string.
-            /// </summary>
-            /// <returns></returns>
-            private static string getAPIConnectionString()
+            string apiDateFormat = "";
+            if (InDate.Length == 10)
+            {
+                //string inputDateFormat = "yyyy-mm-dd";
+                string YEAR = InDate.Substring(0, 4);
+                string MONTH = InDate.Substring(5, 2);
+                string DATE = InDate.Substring(8, 2);
+                apiDateFormat = DATE + MONTH + YEAR;
+
+            }
+            else if (InDate.Length == 8)
+            {
+
+                apiDateFormat = InDate;
+
+
+            }
+            else
+            {
+
+
+
+                var message = string.Format("Input Date Format Should be 'YYYY-MM-DD' or 'DDMMYYYY'");
+                return Json<String>(message);
+            }
+
+
+
+            Results res = new Results();
+            logger.Info("Level1 - Calling GetContract 2");
+            res = getContract(CUNO, apiDateFormat, StartMonth, WHLO);
+            logger.Info("Level1 - Complete GetContract 3");
+
+            if (res.OutputPath != null)
+            {
+
+                return Json<String>("OK");
+
+
+            }
+            else
+            {
+                var message = string.Format("No Contracts Found for " + CUNO + " given date " + InDate);
+                return Json<String>(message);
+              
+               
+
+            }
+
+
+        }
+
+
+        #endregion
+
+
+
+        /// <summary>
+        /// Gets the API connection string.
+        /// </summary>
+        /// <returns></returns>
+        private static string getAPIConnectionString()
         {
 
             return ConfigurationManager.AppSettings["M3APIServer"];
